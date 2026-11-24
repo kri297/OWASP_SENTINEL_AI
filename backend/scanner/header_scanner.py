@@ -120,7 +120,7 @@ class SecurityHeaderScanner:
             # -------------------------------------------------------------
             if self._is_intermediary_challenge(resp):
                 findings.append({
-                    "vuln_type": "Security Header Verification Inconclusive",
+                    "vuln_type": "Security header verification inconclusive - intermediary security challenge detected.",
                     "severity": "Info",
                     "confidence": "Low",
                     "url": target,
@@ -145,12 +145,12 @@ class SecurityHeaderScanner:
             # -------------------------------------------------------------
             if status_code == 403:
                 findings.append({
-                    "vuln_type": "Access Forbidden (HTTP 403)",
+                    "vuln_type": "Request Forbidden (HTTP 403)",
                     "severity": "Info",
                     "confidence": "Low",
                     "url": target,
                     "parameter": "HTTP Status 403",
-                    "evidence": "HTTP status: 403 Forbidden | Request was forbidden by access control policy.",
+                    "evidence": "HTTP status: 403 Forbidden | Request forbidden by access control policy.",
                     "description": "HTTP 403: Request forbidden. Direct evaluation of application security headers is restricted by server access controls.",
                     "remediation": "Verify authorization credentials, IP allow-listing, or URL routing permissions.",
                     "cwe_id": "CWE-284",
@@ -169,12 +169,12 @@ class SecurityHeaderScanner:
             # -------------------------------------------------------------
             if status_code == 429:
                 findings.append({
-                    "vuln_type": "Scanner Rate Limited (HTTP 429)",
+                    "vuln_type": "Rate Limited (HTTP 429)",
                     "severity": "Info",
                     "confidence": "Low",
                     "url": target,
                     "parameter": "HTTP Status 429",
-                    "evidence": "HTTP status: 429 Too Many Requests | Rate limiting threshold triggered.",
+                    "evidence": "HTTP status: 429 Too Many Requests | Rate limited by server.",
                     "description": "HTTP 429: Rate limited. The target server throttled scanner requests. Header verification is incomplete.",
                     "remediation": "Reduce scan rate or whitelist scanner IP addresses in the reverse proxy rate limiter.",
                     "cwe_id": "CWE-799",
@@ -198,7 +198,7 @@ class SecurityHeaderScanner:
                     "confidence": "Low",
                     "url": target,
                     "parameter": f"HTTP Status {status_code}",
-                    "evidence": f"HTTP status: {status_code} {status_reason} | Server encountered an internal error during inspection.",
+                    "evidence": f"HTTP status: {status_code} {status_reason} | Server-side error encountered.",
                     "description": f"HTTP {status_code}: Server-side error. Security header verification on an internal server error response is inconclusive.",
                     "remediation": f"Check server-side logs and application diagnostics for HTTP {status_code} errors.",
                     "cwe_id": "CWE-209",
@@ -226,7 +226,7 @@ class SecurityHeaderScanner:
                         "confidence": "High",
                         "url": target,
                         "parameter": header_name,
-                        "evidence": f"HTTP status: 200 OK | Header '{header_name}' was not present in HTTP response.",
+                        "evidence": f"HTTP 200: Application response successfully received. Header '{header_name}' was not present in HTTP response.",
                         "description": meta["desc"],
                         "remediation": meta["remediation"],
                         "cwe_id": meta["cwe_id"],
@@ -248,7 +248,7 @@ class SecurityHeaderScanner:
                             "confidence": "High",
                             "url": target,
                             "parameter": d_header,
-                            "evidence": f"HTTP status: 200 OK | {d_header}: {h_val}",
+                            "evidence": f"HTTP 200: Application response successfully received. {d_header}: {h_val}",
                             "description": f"{desc}. Disclosing server software, versions, or frameworks assists attackers in identifying version-specific vulnerabilities.",
                             "remediation": f"Disable or suppress the '{d_header}' header in the web server or reverse proxy configuration.",
                             "cwe_id": cwe,

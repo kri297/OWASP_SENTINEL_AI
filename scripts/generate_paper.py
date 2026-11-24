@@ -77,7 +77,7 @@ class AcademicNumberedCanvas(canvas.Canvas):
             self.drawString(
                 MARGIN,
                 PAGE_HEIGHT - 30,
-                "Mishra, Malik, and Singh: OWASP Sentinel AI — Intelligent Web Vulnerability Scanner & Attack-Path Analyzer"
+                "Mishra, Malik, and Singh: OWASP Sentinel AI - Intelligent Web Vulnerability Scanner & Attack-Path Analyzer"
             )
             self.setStrokeColor(COLOR_LIGHT_RULE)
             self.setLineWidth(0.5)
@@ -93,7 +93,7 @@ class AcademicNumberedCanvas(canvas.Canvas):
         self.drawString(
             MARGIN,
             26,
-            "Research Paper — Practical Web Application Security Assessment Platform"
+            "Research Paper: Practical Web Application Security Assessment Platform"
         )
 
         page_str = f"Page {self._pageNumber} of {page_count}"
@@ -365,7 +365,7 @@ def build_research_paper(output_path: str):
     ))
 
     story.append(Paragraph(
-        "<b>Krish Mishra</b> &nbsp;&nbsp;•&nbsp;&nbsp; <b>Manmeet Malik</b> &nbsp;&nbsp;•&nbsp;&nbsp; <b>Bhuvendra Singh</b>",
+        "<b>Krish Mishra</b> &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; <b>Manmeet Malik</b> &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; <b>Bhuvendra Singh</b>",
         styles["Authors"]
     ))
 
@@ -382,7 +382,7 @@ def build_research_paper(output_path: str):
     # 2. ABSTRACT (User exact description)
     # =========================================================================
     user_abstract = (
-        "<b><i>Abstract</i>—OWASP Sentinel AI — Intelligent Web Vulnerability Scanner & Attack-Path Analyzer "
+        "<b><i>Abstract</i> -- OWASP Sentinel AI - Intelligent Web Vulnerability Scanner & Attack-Path Analyzer "
         "is an AI-powered web security tool designed to identify common web application vulnerabilities, "
         "analyze potential security risks, and suggest appropriate remediation measures. The system enables "
         "users to scan authorized web applications for selected vulnerabilities based on the OWASP Top 10, "
@@ -401,7 +401,7 @@ def build_research_paper(output_path: str):
     story.append(Paragraph(user_abstract, styles["Abstract"]))
 
     index_terms = (
-        "<b><i>Index Terms</i>—Web Application Security, OWASP Top 10, Attack-Path Modeling, "
+        "<b><i>Index Terms</i> -- Web Application Security, OWASP Top 10, Attack-Path Modeling, "
         "Structural Content Verification, False-Positive Reduction, Cloud-Native Auditing, "
         "Generative Artificial Intelligence, Dynamic Security Testing.</b>"
     )
@@ -428,8 +428,8 @@ def build_research_paper(output_path: str):
         "(such as Vercel and Cloudflare) change how web servers respond. For example, when an application does not have a "
         "requested file, instead of returning an HTTP 404 Not Found error, it often returns an HTTP 200 OK status code "
         "with an empty HTML webpage (a behavior known as a 'soft-404' fallback). Because older scanners only check if the "
-        "status code is 200 OK, they falsely report that sensitive server files—such as <code>web.config</code>, <code>.env</code>, "
-        "or <code>.git/HEAD</code>—are exposed, even when the response is simply a regular webpage shell. In addition, when "
+        "status code is 200 OK, they falsely report that sensitive server files (such as <code>web.config</code>, <code>.env</code>, "
+        "or <code>.git/HEAD</code>) are exposed, even when the response is simply a regular webpage shell. In addition, when "
         "automated scanners send multiple requests, edge firewalls frequently display anti-bot security challenge screens. "
         "Traditional scanners mistakenly test the security headers of these challenge screens instead of the real website, "
         "producing inaccurate security reports.",
@@ -618,38 +618,39 @@ def build_research_paper(output_path: str):
         ))
         story.append(Spacer(1, 6))
 
-    story.append(Paragraph("B. Algorithm 2: Handling Security Challenges & Status Codes", styles["SubSecHeading"]))
+    story.append(Paragraph("B. Algorithm 2: Distinguishing HTTP Status Conditions & Intermediary Challenge Detection", styles["SubSecHeading"]))
     story.append(Paragraph(
-        "When edge proxies like Vercel or Cloudflare display security challenges, testing tools often make the mistake of auditing "
-        "the security headers of the challenge page itself. Algorithm 2 detects these challenge screens using specific header flags "
-        "and page text indicators. When detected, the system safely stops header checking on the challenge page and notifies the user "
-        "that verification is inconclusive due to the challenge.",
+        "A critical engineering capability of OWASP Sentinel AI is accurately distinguishing between normal application responses, "
+        "access control restrictions, and edge security challenges. Specifically, the system differentiates the following key conditions:<br/>"
+        "&bull;&nbsp;<b>HTTP 200:</b> Application response successfully received. The scanner confirms genuine application connectivity and executes standard, authoritative security header evaluations.<br/>"
+        "&bull;&nbsp;<b>HTTP 403:</b> Request forbidden. Direct evaluation of security headers is restricted by server access controls or reverse-proxy policies.<br/>"
+        "&bull;&nbsp;<b>HTTP 429:</b> Rate limited. The target server throttled scanner requests, emitting an advisory notice rather than skewing security grades.<br/>"
+        "&bull;&nbsp;<b>HTTP 5xx:</b> Server-side error. The server encountered an internal error during inspection, marking header validation as inconclusive.<br/>"
+        "&bull;&nbsp;<b>Vercel Challenge / Intermediary Blocking Page:</b> When edge proxies intercept requests with automated security checkpoints (such as Vercel Security Checkpoint or Cloudflare Turnstile), legacy scanners mistakenly audit the security headers of the challenge page itself. In contrast, OWASP Sentinel AI detects the challenge and explicitly reports:<br/>"
+        "<i>\"Security header verification inconclusive - intermediary security challenge detected.\"</i>",
         styles["Body"]
     ))
 
     # Clean Algorithm 2 Box
     a2_lines = [
         "1:  headers_lower = LowercaseDictionary(headers);  body_lower = LowercaseText(body)",
-        "2:  is_challenge = ('x-vercel-challenge' in headers_lower) or",
-        "                   (headers_lower.get('x-vercel-mitigated') == 'challenge') or",
-        "                   ('cf-mitigated' in headers_lower) or",
-        "                   ('vercel security checkpoint' in body_lower) or",
-        "                   ('just a moment...' in body_lower and 'cloudflare' in body_lower)",
-        "3:  if is_challenge then",
-        "4:      EmitFinding(",
-        "            Title='Security Header Verification Inconclusive', Severity='Info', Confidence='Low',",
-        "            Message='Security header verification inconclusive - intermediary security challenge detected.'",
-        "        )",
-        "5:      STOP_HEADER_SCAN()   # Prevent auditing the third-party challenge screen",
-        "6:  else if status_code == 403 then EmitNotice('Access Forbidden (HTTP 403)')",
-        "7:  else if status_code == 429 then EmitNotice('Rate Limited by Server (HTTP 429)')",
-        "8:  else if status_code >= 500 then EmitNotice('Server Error (HTTP 5xx)')",
-        "9:  else PerformStandardHeaderScan(headers)   # Audit the genuine application headers"
+        "2:  if IsVercelChallengeOrBlockingPage(headers_lower, body_lower) then",
+        "3:      return Report('Security header verification inconclusive - intermediary security challenge detected.')",
+        "4:  else if status_code == 200 then",
+        "5:      LogNotice('HTTP 200: Application response successfully received.')",
+        "6:      return PerformStandardHeaderScan(headers)   # Audit the genuine application headers",
+        "7:  else if status_code == 403 then",
+        "8:      return Report('HTTP 403: Request forbidden.')",
+        "9:  else if status_code == 429 then",
+        "10:     return Report('HTTP 429: Rate limited.')",
+        "11: else if status_code >= 500 then",
+        "12:     return Report('HTTP 5xx: Server-side error.')",
+        "13: end if"
     ]
     story.append(make_algorithm_box(
-        "Algorithm 2: Security Challenge Detection & Response Handling",
+        "Algorithm 2: Response Condition Handling & Challenge Detection",
         "HTTP Response R = (status_code, headers, body) from Target Website",
-        "Security Header Evaluation or Informational Notification",
+        "Security Header Assessment or Status Classification Notice",
         a2_lines
     ))
     story.append(Spacer(1, 6))
@@ -788,23 +789,23 @@ def build_research_paper(output_path: str):
         styles["Body"]
     ))
     story.append(Paragraph(
-        "• <b>Educational and Practical Focus:</b> Rather than attempting to build an aggressive, fully autonomous penetration testing "
+        "<b>1) Educational and Practical Focus:</b> Rather than attempting to build an aggressive, fully autonomous penetration testing "
         "tool, the project focuses on selected high-impact OWASP checks, clear vulnerability explanations, and attack-path visualization.",
         styles["Bullet"]
     ))
     story.append(Paragraph(
-        "• <b>Safe, Non-Destructive Testing:</b> All vulnerability checks use harmless payloads. For example, SQL injection tests use "
+        "<b>2) Safe, Non-Destructive Testing:</b> All vulnerability checks use harmless payloads. For example, SQL injection tests use "
         "safe mathematical tests (such as checking if <code>1=1</code>) and brief pause checks (<code>3 seconds</code>) without ever modifying, "
         "deleting, or damaging target data.",
         styles["Bullet"]
     ))
     story.append(Paragraph(
-        "• <b>Zero Fake Data Guarantee:</b> The system operates entirely on real network responses. No mock or dummy records exist in the "
+        "<b>3) Zero Fake Data Guarantee:</b> The system operates entirely on real network responses. No mock or dummy records exist in the "
         "system, and users can clear their test history at any time using the built-in <i>Clear History</i> feature.",
         styles["Bullet"]
     ))
     story.append(Paragraph(
-        "• <b>CI/CD Pipeline Integration:</b> The modular Flask API endpoints allow development teams to trigger automated scans "
+        "<b>4) CI/CD Pipeline Integration:</b> The modular Flask API endpoints allow development teams to trigger automated scans "
         "during build stages (e.g., in GitHub Actions or GitLab CI) and export audit reports as standard JSON or PDF documents.",
         styles["Bullet"]
     ))

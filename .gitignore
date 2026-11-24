@@ -58,3 +58,7 @@ logs/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Local Viva Voce & Defense Guides (Never commit)
+OWASP_Sentinel_AI_Viva_Preparation_Guide.pdf
+scripts/generate_viva_guide.py
