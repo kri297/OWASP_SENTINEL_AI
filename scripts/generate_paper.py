@@ -1,8 +1,14 @@
 """
-OWASP Sentinel AI - Academic Research Paper Generator (IEEE/ACM Publication Format)
+OWASP Sentinel AI - Publication-Grade Technical Research Paper Generator
 Authors: Krish Mishra, Manmeet Malik, Bhuvendra Singh
-Features: Professional plain-English academic text, authentic embedded UI screenshots,
-          LaTeX-style Booktabs tables, and standard IEEE running headers/footers.
+Features:
+- Completely flowing document (zero hardcoded PageBreak calls).
+- Clear, plain-English technical writing (no artificial or foreign-sounding jargon).
+- High-resolution visual charts: Severity Pie/Donut Chart, Benchmark Comparison Bar Chart,
+  and Attack-Path Exploit Workflow Diagram.
+- Real UI screenshots of the live system and scan cards.
+- Complete removal of email IDs and reference lists (replaced with Deployment & Hardening Roadmap).
+- Clean LaTeX-style tables and algorithms with zero broken glyphs.
 """
 
 import os
@@ -18,8 +24,6 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
-    PageBreak,
-    KeepTogether,
     HRFlowable,
     Image as RLImage,
 )
@@ -31,7 +35,7 @@ MARGIN = 46.0  # ~0.64 in
 CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN)  # ~503.27 pt
 
 # Academic Color Palette
-COLOR_INK = HexColor("#0F172A")        # Deep black/charcoal
+COLOR_INK = HexColor("#0F172A")        # Deep charcoal
 COLOR_CHARCOAL = HexColor("#1E293B")   # Academic body text
 COLOR_MUTED = HexColor("#475569")      # Secondary text / metadata
 COLOR_RULE = HexColor("#334155")       # Structural lines
@@ -99,8 +103,8 @@ class AcademicNumberedCanvas(canvas.Canvas):
         self.restoreState()
 
 
-def get_scaled_image(rel_path: str, max_w: float = 450.0):
-    """Safely loads an image, preserves aspect ratio, and returns a flowable Table with border."""
+def get_clean_image(rel_path: str, target_w: float = 450.0):
+    """Safely loads an image and returns a cleanly centered Table without harsh borders."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     full_path = os.path.join(script_dir, rel_path)
     if not os.path.exists(full_path):
@@ -110,21 +114,18 @@ def get_scaled_image(rel_path: str, max_w: float = 450.0):
         im = PILImage.open(full_path)
         w, h = im.size
         aspect = h / float(w)
-        target_w = min(max_w, float(w))
-        target_h = target_w * aspect
-        rl_img = RLImage(full_path, width=target_w, height=target_h)
+        actual_w = min(target_w, float(w))
+        actual_h = actual_w * aspect
+        rl_img = RLImage(full_path, width=actual_w, height=actual_h)
 
-        # Wrap in single-cell table for neat border and centering
         wrapper = Table([[rl_img]], colWidths=[CONTENT_WIDTH])
         wrapper.setStyle(TableStyle([
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("BOX", (0, 0), (-1, -1), 0.5, COLOR_LIGHT_RULE),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-            ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ]))
         return wrapper
     except Exception as e:
@@ -207,8 +208,8 @@ def build_research_paper(output_path: str):
             leading=13.5,
             alignment=TA_CENTER,
             textColor=COLOR_INK,
-            spaceBefore=12,
-            spaceAfter=5,
+            spaceBefore=14,
+            spaceAfter=6,
             keepWithNext=True,
         ),
         "SubSecHeading": ParagraphStyle(
@@ -219,8 +220,8 @@ def build_research_paper(output_path: str):
             leading=12.8,
             alignment=TA_LEFT,
             textColor=COLOR_INK,
-            spaceBefore=9,
-            spaceAfter=3,
+            spaceBefore=10,
+            spaceAfter=4,
             keepWithNext=True,
         ),
         "Body": ParagraphStyle(
@@ -304,43 +305,59 @@ def build_research_paper(output_path: str):
             textColor=COLOR_CHARCOAL,
             alignment=TA_CENTER,
         ),
-        "AlgorithmText": ParagraphStyle(
-            "AlgorithmText",
+        "AlgorithmTitle": ParagraphStyle(
+            "AlgorithmTitle",
+            parent=base["Normal"],
+            fontName="Times-Bold",
+            fontSize=8.5,
+            leading=11.5,
+            textColor=COLOR_INK,
+            spaceAfter=3,
+        ),
+        "AlgorithmHeader": ParagraphStyle(
+            "AlgorithmHeader",
+            parent=base["Normal"],
+            fontName="Times-Roman",
+            fontSize=7.8,
+            leading=10.5,
+            textColor=COLOR_CHARCOAL,
+            spaceAfter=2,
+        ),
+        "AlgorithmLine": ParagraphStyle(
+            "AlgorithmLine",
             parent=base["Normal"],
             fontName="Courier",
             fontSize=7.6,
             leading=10.2,
             textColor=COLOR_INK,
         ),
-        "Equation": ParagraphStyle(
-            "Equation",
-            parent=base["Normal"],
-            fontName="Times-Italic",
-            fontSize=9.2,
-            leading=13.0,
-            alignment=TA_CENTER,
-            textColor=COLOR_INK,
-            spaceBefore=4,
-            spaceAfter=4,
-        ),
-        "Reference": ParagraphStyle(
-            "Reference",
-            parent=base["Normal"],
-            fontName="Times-Roman",
-            fontSize=8.0,
-            leading=11.0,
-            alignment=TA_LEFT,
-            textColor=COLOR_CHARCOAL,
-            leftIndent=20,
-            firstLineIndent=-20,
-            spaceAfter=3,
-        ),
     }
+
+    def make_algorithm_box(title, input_desc, output_desc, lines):
+        content = [
+            Paragraph(f"<b>{title}</b>", styles["AlgorithmTitle"]),
+            Paragraph(f"<b>Input:</b> {input_desc}<br/><b>Output:</b> {output_desc}", styles["AlgorithmHeader"]),
+            HRFlowable(width="100%", thickness=0.5, color=COLOR_LIGHT_RULE, spaceBefore=3, spaceAfter=4)
+        ]
+        for l in lines:
+            content.append(Paragraph(l, styles["AlgorithmLine"]))
+
+        box = Table([[content]], colWidths=[CONTENT_WIDTH])
+        box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), COLOR_CODE_BG),
+            ("LINEABOVE", (0, 0), (-1, -1), 1.0, COLOR_INK),
+            ("LINEBELOW", (0, 0), (-1, -1), 1.0, COLOR_INK),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ]))
+        return box
 
     story = []
 
     # =========================================================================
-    # 1. TITLE & THREE-AUTHOR BLOCK
+    # 1. TITLE & THREE-AUTHOR BLOCK (No Mail IDs)
     # =========================================================================
     story.append(Paragraph(
         "OWASP Sentinel AI: An Intelligent Web Vulnerability Scanner, Attack-Path Analyzer, and Generative AI Remediation Platform",
@@ -353,9 +370,8 @@ def build_research_paper(output_path: str):
     ))
 
     story.append(Paragraph(
-        "Department of Computer Science & Engineering | Cybersecurity & Applied AI Systems Laboratory<br/>"
-        "Project Repository: <u>https://github.com/kri297/OWASP_SENTINEL_AI</u><br/>"
-        "Institutional Contacts: ashamishra122098@gmail.com, manmeet.malik@sentinel.org, bhuvendra.singh@sentinel.org",
+        "Department of Computer Science & Engineering | Cybersecurity Research Laboratory<br/>"
+        "Project Repository: <u>https://github.com/kri297/OWASP_SENTINEL_AI</u>",
         styles["Affiliation"]
     ))
 
@@ -363,7 +379,7 @@ def build_research_paper(output_path: str):
     story.append(HRFlowable(width="100%", thickness=0.8, color=COLOR_RULE, spaceBefore=2, spaceAfter=6))
 
     # =========================================================================
-    # 2. ABSTRACT (Integrating the user's core description)
+    # 2. ABSTRACT (User exact description)
     # =========================================================================
     user_abstract = (
         "<b><i>Abstract</i>—OWASP Sentinel AI — Intelligent Web Vulnerability Scanner & Attack-Path Analyzer "
@@ -373,7 +389,7 @@ def build_research_paper(output_path: str):
         "including SQL injection indicators, Cross-Site Scripting (XSS), missing security headers, insecure "
         "configurations, and exposed sensitive information. It uses predefined security checks to detect "
         "potential weaknesses and integrates artificial intelligence to explain findings, classify their severity, "
-        "and recommend practical fixes. Additionally, the attack-path analysis module connects related vulnerabilities "
+        "and recommend possible fixes. Additionally, the attack-path analysis module connects related vulnerabilities "
         "using predefined rules to visualize how multiple weaknesses could contribute to a larger security risk. "
         "A web-based dashboard displays scan results, vulnerability statistics, and remediation suggestions, while "
         "an automated report-generation feature produces downloadable PDF reports. To ensure feasibility, the project "
@@ -385,8 +401,8 @@ def build_research_paper(output_path: str):
     story.append(Paragraph(user_abstract, styles["Abstract"]))
 
     index_terms = (
-        "<b><i>Index Terms</i>—Web Application Vulnerability Assessment, OWASP Top 10, Attack-Path Modeling, "
-        "Structural Content Verification, False-Positive Reduction, Cloud-Native Security, "
+        "<b><i>Index Terms</i>—Web Application Security, OWASP Top 10, Attack-Path Modeling, "
+        "Structural Content Verification, False-Positive Reduction, Cloud-Native Auditing, "
         "Generative Artificial Intelligence, Dynamic Security Testing.</b>"
     )
     story.append(Paragraph(index_terms, styles["IndexTerms"]))
@@ -400,11 +416,11 @@ def build_research_paper(output_path: str):
     story.append(Paragraph("I. INTRODUCTION", styles["SecHeading"]))
     story.append(Paragraph(
         "Modern websites and web applications power critical services across everyday life, business, and education. "
-        "However, they are frequently targeted by malicious attackers seeking unauthorized data access or system control [1]. "
+        "However, they are frequently targeted by malicious attackers seeking unauthorized data access or system control. "
         "While established automated scanners such as OWASP ZAP, Nikto, and Nessus have long been available, they often pose "
         "steep learning curves for students, junior developers, and small security teams. These existing tools frequently "
         "generate long, unorganized lists of technical alerts without clear explanations, and they often struggle with false "
-        "alarms caused by modern web technologies [2].",
+        "alarms caused by modern web technologies.",
         styles["Body"]
     ))
     story.append(Paragraph(
@@ -434,7 +450,7 @@ def build_research_paper(output_path: str):
     story.append(Paragraph("II. TARGET VULNERABILITY TAXONOMY", styles["SecHeading"]))
     story.append(Paragraph(
         "To ensure high scanning reliability and avoid overloading target systems, OWASP Sentinel AI focuses on five "
-        "high-impact vulnerability categories defined in the <i>OWASP Top 10: 2021</i> standard [3]. Table I outlines these "
+        "high-impact vulnerability categories defined in the <i>OWASP Top 10: 2021</i> standard. Table I outlines these "
         "categories, their corresponding Common Weakness Enumeration (CWE) identifiers, and the specific checks performed.",
         styles["Body"]
     ))
@@ -481,30 +497,56 @@ def build_research_paper(output_path: str):
     story.append(t1)
     story.append(Spacer(1, 8))
 
-    story.append(PageBreak())
+    # =========================================================================
+    # 5. SECTION III: VULNERABILITY DISTRIBUTION & SCAN TELEMETRY
+    # =========================================================================
+    story.append(Paragraph("III. VULNERABILITY DISTRIBUTION & SCAN TELEMETRY", styles["SecHeading"]))
+    story.append(Paragraph(
+        "During vulnerability audits, detected issues are automatically categorized into five standardized severity levels: "
+        "Critical, High, Medium, Low, and Informational. Figure 1 illustrates the statistical distribution of findings across "
+        "evaluated benchmark test suites, highlighting that medium and low severity misconfigurations (such as missing defense-in-depth "
+        "headers and cookie flags) represent the majority of real-world findings, while high and critical issues indicate severe direct risks.",
+        styles["Body"]
+    ))
+
+    # FIGURE 1: Matplotlib Donut / Pie Chart
+    img_pie = get_clean_image("fig_pie_chart.png", target_w=320)
+    if img_pie:
+        story.append(img_pie)
+        story.append(Paragraph(
+            "<b>Figure 1:</b> Severity tier distribution of detected findings across analyzed web targets.",
+            styles["FigureCaption"]
+        ))
+        story.append(Spacer(1, 6))
 
     # =========================================================================
-    # 5. SECTION III: SYSTEM ARCHITECTURE & USER INTERFACE
+    # 6. SECTION IV: SYSTEM ARCHITECTURE & USER INTERFACE DESIGN
     # =========================================================================
-    story.append(Paragraph("III. SYSTEM ARCHITECTURE & USER INTERFACE DESIGN", styles["SecHeading"]))
+    story.append(Paragraph("IV. SYSTEM ARCHITECTURE & USER INTERFACE DESIGN", styles["SecHeading"]))
     story.append(Paragraph(
         "OWASP Sentinel AI is designed as a modular web application comprising a Flask Python backend scanner and a modern "
         "React 19 user interface. The system allows users to launch scans, monitor testing progress in real time, inspect "
         "vulnerability details, and download executive PDF reports.",
         styles["Body"]
     ))
+    story.append(Paragraph(
+        "To make security information accessible to both technical and non-technical users, scan statistics are aggregated "
+        "on a clean, light-themed web dashboard. As shown in Figure 2, the dashboard provides clear summary cards for total scans, "
+        "identified vulnerabilities categorized by severity, and a table of recent audits.",
+        styles["Body"]
+    ))
 
-    # FIGURE 1: Interactive Scan Launcher Screenshot
-    img_launcher = get_scaled_image("fig_scan_launcher.png", max_w=450)
-    if img_launcher:
-        story.append(img_launcher)
+    # FIGURE 2: Dashboard UI Screenshot
+    img_dash = get_clean_image("fig_dashboard.png", target_w=430)
+    if img_dash:
+        story.append(img_dash)
         story.append(Paragraph(
-            "<b>Figure 1:</b> The interactive scan launcher interface of OWASP Sentinel AI, allowing users to specify authorized targets and select scan intensity.",
+            "<b>Figure 2:</b> The OWASP Sentinel AI executive dashboard showing overall security metrics, severity breakdown, and audit history.",
             styles["FigureCaption"]
         ))
         story.append(Spacer(1, 6))
 
-    story.append(Paragraph("A. Discovery & Automated Web Crawler", styles["SubSecHeading"]))
+    story.append(Paragraph("A. Reconnaissance & Automated Web Crawler", styles["SubSecHeading"]))
     story.append(Paragraph(
         "When an audit starts, the system first conducts non-intrusive reconnaissance. The <code>DNSRecon</code> module "
         "checks standard domain records (A, CNAME, MX) and looks for common subdomains (such as <i>api</i>, <i>dev</i>, <i>admin</i>). "
@@ -515,30 +557,10 @@ def build_research_paper(output_path: str):
         styles["Body"]
     ))
 
-    story.append(Paragraph("B. The Executive Dashboard & Visual Telemetry", styles["SubSecHeading"]))
-    story.append(Paragraph(
-        "To make security information accessible to both technical and non-technical users, scan statistics are aggregated "
-        "on a clean, light-themed web dashboard. As shown in Figure 2, the dashboard provides clear summary cards for total scans, "
-        "identified vulnerabilities categorized by severity (Critical, High, Medium, Low, Informational), and a table of recent audits.",
-        styles["Body"]
-    ))
-
-    # FIGURE 2: Executive Dashboard Screenshot
-    img_dash = get_scaled_image("fig_dashboard.png", max_w=450)
-    if img_dash:
-        story.append(img_dash)
-        story.append(Paragraph(
-            "<b>Figure 2:</b> The OWASP Sentinel AI executive dashboard showing overall security metrics, severity breakdown, and audit history.",
-            styles["FigureCaption"]
-        ))
-        story.append(Spacer(1, 6))
-
-    story.append(PageBreak())
-
     # =========================================================================
-    # 6. SECTION IV: METHODOLOGY & ALGORITHMIC FORMULATION
+    # 7. SECTION V: METHODOLOGY & ALGORITHMIC FORMULATION
     # =========================================================================
-    story.append(Paragraph("IV. METHODOLOGY & ALGORITHMIC FORMULATION", styles["SecHeading"]))
+    story.append(Paragraph("V. METHODOLOGY & ALGORITHMIC FORMULATION", styles["SecHeading"]))
     story.append(Paragraph(
         "To ensure high scanning accuracy, OWASP Sentinel AI implements two dedicated algorithms: Structural Content Verification (SCV) "
         "and Intermediary Challenge Detection (ICD). Below, we explain the operational logic of each module.",
@@ -555,50 +577,39 @@ def build_research_paper(output_path: str):
         styles["Body"]
     ))
 
-    # Algorithm 1 Box
-    algo1_code = (
-        "<b>Algorithm 1: Structural Content Verification (SCV) to Eliminate False Alarms</b><br/>"
-        "────────────────────────────────────────────────────────────────────────────────────────<br/>"
-        "<b>Input:</b> Requested File Name <i>r</i>, Server Response <i>R = (status_code, headers, body)</i><br/>"
-        "<b>Output:</b> Verified Finding or Informational Candidate<br/>"
-        "────────────────────────────────────────────────────────────────────────────────────────<br/>"
-        "1: &nbsp;<b>if</b> <i>status_code</i> in {404, 403, 410} <b>then return</b> ('File Not Accessible', 'None')<br/>"
-        "2: &nbsp;<i>is_html</i> ← (body contains '&lt;!doctype html' or body contains '&lt;html')<br/>"
-        "3: &nbsp;<b>if</b> <i>r</i> == 'web.config' <b>then</b><br/>"
-        "4: &nbsp;&nbsp;&nbsp;&nbsp;<i>is_xml</i> ← (body contains '&lt;configuration' and body contains '&lt;/configuration&gt;')<br/>"
-        "5: &nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> <i>is_xml</i> and not <i>is_html</i> <b>then</b><br/>"
-        "6: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> Finding(Title='Exposed IIS web.config', Severity='High', Confidence='High')<br/>"
-        "7: &nbsp;&nbsp;&nbsp;&nbsp;<b>else</b><br/>"
-        "8: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> Candidate(Title='Potentially Exposed web.config', Severity='Info',<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Badge='Needs verification', Confidence='Low')<br/>"
-        "9: &nbsp;<b>else if</b> <i>r</i> == '.env' <b>then</b><br/>"
-        "10:&nbsp;&nbsp;&nbsp;&nbsp;<i>has_keys</i> ← (body matches 'KEY=VALUE' pattern and contains secret keywords)<br/>"
-        "11:&nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> <i>has_keys</i> and not <i>is_html</i> <b>then</b><br/>"
-        "12:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> Finding(Title='Exposed Environment Variables', Severity='Critical', Confidence='High')<br/>"
-        "13:&nbsp;&nbsp;&nbsp;&nbsp;<b>else return</b> Candidate(Title='Potential .env Exposure', Severity='Info', Badge='Needs verification')<br/>"
-        "14:&nbsp;<b>else if</b> <i>r</i> == '.git/HEAD' <b>then</b><br/>"
-        "15:&nbsp;&nbsp;&nbsp;&nbsp;<i>is_git_ref</i> ← (body starts with 'ref: refs/' or body is 40-character hex hash)<br/>"
-        "16:&nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> <i>is_git_ref</i> and not <i>is_html</i> <b>then</b><br/>"
-        "17:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>return</b> Finding(Title='Exposed Git Metadata', Severity='High', Confidence='High')<br/>"
-        "18:&nbsp;&nbsp;&nbsp;&nbsp;<b>else return</b> Candidate(Title='Potential Git Exposure', Severity='Info', Badge='Needs verification')<br/>"
-        "19:&nbsp;<b>end if</b><br/>"
-        "────────────────────────────────────────────────────────────────────────────────────────"
-    )
-    a1_table = Table([[Paragraph(algo1_code, styles["AlgorithmText"])]], colWidths=[CONTENT_WIDTH])
-    a1_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), COLOR_CODE_BG),
-        ("LINEABOVE", (0, 0), (-1, -1), 1.2, COLOR_INK),
-        ("LINEBELOW", (0, 0), (-1, -1), 1.2, COLOR_INK),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-    ]))
-    story.append(a1_table)
+    # Clean Algorithm 1 Box (Zero Broken Unicode Glyphs)
+    a1_lines = [
+        "1:  if status_code in {404, 403, 410} then return ('File Not Accessible', 'None')",
+        "2:  is_html = (body contains '&lt;!doctype html' or body contains '&lt;html')",
+        "3:  if resource == 'web.config' then",
+        "4:      is_xml = (body contains '&lt;configuration' and body contains '&lt;/configuration&gt;')",
+        "5:      if is_xml and not is_html then",
+        "6:          return Finding(Title='Exposed IIS web.config', Severity='High', Confidence='High')",
+        "7:      else",
+        "8:          return Candidate(Title='Potentially Exposed web.config', Severity='Info',",
+        "                             Badge='Needs verification', Confidence='Low')",
+        "9:  else if resource == '.env' then",
+        "10:     has_keys = (body matches 'KEY=VALUE' pattern and contains secret keywords)",
+        "11:     if has_keys and not is_html then",
+        "12:         return Finding(Title='Exposed Environment Variables', Severity='Critical', Confidence='High')",
+        "13:     else return Candidate(Title='Potential .env Exposure', Severity='Info', Badge='Needs verification')",
+        "14: else if resource == '.git/HEAD' then",
+        "15:     is_git_ref = (body starts with 'ref: refs/' or body is 40-character hex hash)",
+        "16:     if is_git_ref and not is_html then",
+        "17:         return Finding(Title='Exposed Git Metadata', Severity='High', Confidence='High')",
+        "18:     else return Candidate(Title='Potential Git Exposure', Severity='Info', Badge='Needs verification')",
+        "19: end if"
+    ]
+    story.append(make_algorithm_box(
+        "Algorithm 1: Structural Content Verification (SCV) to Eliminate False Alarms",
+        "Requested File Name r, Server Response R = (status_code, headers, body)",
+        "Verified Finding or Informational Candidate",
+        a1_lines
+    ))
     story.append(Spacer(1, 6))
 
-    # FIGURE 3: Structural Verification Finding Card Screenshot
-    img_card = get_scaled_image("fig_webconfig_card.png", max_w=440)
+    # FIGURE 3: Soft-404 Finding Card Screenshot
+    img_card = get_clean_image("fig_webconfig_card.png", target_w=400)
     if img_card:
         story.append(img_card)
         story.append(Paragraph(
@@ -616,55 +627,56 @@ def build_research_paper(output_path: str):
         styles["Body"]
     ))
 
-    # Algorithm 2 Box
-    algo2_code = (
-        "<b>Algorithm 2: Security Challenge Detection & Response Handling</b><br/>"
-        "────────────────────────────────────────────────────────────────────────────────────────<br/>"
-        "<b>Input:</b> HTTP Response <i>R = (status_code, headers, body)</i> from Target Website<br/>"
-        "<b>Output:</b> Security Header Evaluation or Informational Notification<br/>"
-        "────────────────────────────────────────────────────────────────────────────────────────<br/>"
-        "1: &nbsp;<i>headers_lower</i> ← LowercaseDictionary(headers); &nbsp;<i>body_lower</i> ← LowercaseText(body)<br/>"
-        "2: &nbsp;<i>is_challenge</i> ← ('x-vercel-challenge' in headers_lower) or<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(headers_lower['x-vercel-mitigated'] == 'challenge') or<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('cf-mitigated' in headers_lower) or<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('vercel security checkpoint' in body_lower) or<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;('just a moment...' in body_lower and 'cloudflare' in body_lower)<br/>"
-        "3: &nbsp;<b>if</b> <i>is_challenge</i> <b>then</b><br/>"
-        "4: &nbsp;&nbsp;&nbsp;&nbsp;<b>EmitFinding</b>(<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Title='Security Header Verification Inconclusive', Severity='Info', Confidence='Low',<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Message='Security header verification inconclusive – intermediary security challenge detected.'<br/>"
-        "&nbsp;&nbsp;&nbsp;&nbsp;)<br/>"
-        "5: &nbsp;&nbsp;&nbsp;&nbsp;<b>STOP_HEADER_SCAN()</b> &nbsp;&nbsp;/* Prevent evaluating headers of the third-party challenge screen */<br/>"
-        "6: &nbsp;<b>else if</b> <i>status_code</i> == 403 <b>then</b> EmitNotice('Access Forbidden (HTTP 403)')<br/>"
-        "7: &nbsp;<b>else if</b> <i>status_code</i> == 429 <b>then</b> EmitNotice('Rate Limited by Server (HTTP 429)')<br/>"
-        "8: &nbsp;<b>else if</b> <i>status_code</i> &gt;= 500 <b>then</b> EmitNotice('Server Error (HTTP 5xx)')<br/>"
-        "9: &nbsp;<b>else</b> PerformStandardHeaderScan(headers) &nbsp;&nbsp;/* Audit the real application headers */<br/>"
-        "────────────────────────────────────────────────────────────────────────────────────────"
-    )
-    a2_table = Table([[Paragraph(algo2_code, styles["AlgorithmText"])]], colWidths=[CONTENT_WIDTH])
-    a2_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), COLOR_CODE_BG),
-        ("LINEABOVE", (0, 0), (-1, -1), 1.2, COLOR_INK),
-        ("LINEBELOW", (0, 0), (-1, -1), 1.2, COLOR_INK),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-    ]))
-    story.append(a2_table)
+    # Clean Algorithm 2 Box
+    a2_lines = [
+        "1:  headers_lower = LowercaseDictionary(headers);  body_lower = LowercaseText(body)",
+        "2:  is_challenge = ('x-vercel-challenge' in headers_lower) or",
+        "                   (headers_lower.get('x-vercel-mitigated') == 'challenge') or",
+        "                   ('cf-mitigated' in headers_lower) or",
+        "                   ('vercel security checkpoint' in body_lower) or",
+        "                   ('just a moment...' in body_lower and 'cloudflare' in body_lower)",
+        "3:  if is_challenge then",
+        "4:      EmitFinding(",
+        "            Title='Security Header Verification Inconclusive', Severity='Info', Confidence='Low',",
+        "            Message='Security header verification inconclusive - intermediary security challenge detected.'",
+        "        )",
+        "5:      STOP_HEADER_SCAN()   # Prevent auditing the third-party challenge screen",
+        "6:  else if status_code == 403 then EmitNotice('Access Forbidden (HTTP 403)')",
+        "7:  else if status_code == 429 then EmitNotice('Rate Limited by Server (HTTP 429)')",
+        "8:  else if status_code >= 500 then EmitNotice('Server Error (HTTP 5xx)')",
+        "9:  else PerformStandardHeaderScan(headers)   # Audit the genuine application headers"
+    ]
+    story.append(make_algorithm_box(
+        "Algorithm 2: Security Challenge Detection & Response Handling",
+        "HTTP Response R = (status_code, headers, body) from Target Website",
+        "Security Header Evaluation or Informational Notification",
+        a2_lines
+    ))
     story.append(Spacer(1, 6))
 
-    story.append(Paragraph("C. Attack-Path Analysis: Visualizing How Weaknesses Connect", styles["SubSecHeading"]))
+    # =========================================================================
+    # 8. SECTION VI: ATTACK-PATH ANALYSIS & AI ASSISTED REMEDIATION
+    # =========================================================================
+    story.append(Paragraph("VI. ATTACK-PATH ANALYSIS & AI ASSISTED REMEDIATION", styles["SecHeading"]))
     story.append(Paragraph(
         "Individual vulnerabilities often appear minor in isolation, but can become dangerous when chained together. "
         "The attack-path module connects related weaknesses using predefined rules. For example, if a scan reveals an "
-        "administrative subdomain during DNS reconnaissance, and that subdomain has an unauthenticated form vulnerable to "
-        "SQL injection, the module connects them into an attack chain (e.g., <i>Subdomain Discovery ──▶ Sensitive Form ──▶ SQL Injection ──▶ Database Access</i>). "
-        "This visual representation helps developers and students see how an attacker could move through their application.",
+        "administrative subdomain during DNS reconnaissance, and that subdomain has an exposed configuration file containing credentials, "
+        "which leads to SQL injection, the module maps this sequence as a connected exploit chain. Figure 4 illustrates this "
+        "multi-hop exploit workflow.",
         styles["Body"]
     ))
 
-    story.append(Paragraph("D. AI-Powered Explanation and Remediation Suggestions", styles["SubSecHeading"]))
+    # FIGURE 4: Attack Path Workflow Diagram
+    img_attack = get_clean_image("fig_attack_path_flow.png", target_w=460)
+    if img_attack:
+        story.append(img_attack)
+        story.append(Paragraph(
+            "<b>Figure 4:</b> Multi-hop attack-path modeling showing how reconnaissance and configuration disclosures link to critical exploit risks.",
+            styles["FigureCaption"]
+        ))
+        story.append(Spacer(1, 6))
+
     story.append(Paragraph(
         "To assist users in understanding their scan results, OWASP Sentinel AI integrates Google Gemini generative artificial "
         "intelligence. The AI analyzes each detected vulnerability and generates a concise, plain-English summary explaining "
@@ -673,18 +685,26 @@ def build_research_paper(output_path: str):
         styles["Body"]
     ))
 
-    story.append(PageBreak())
-
     # =========================================================================
-    # 7. SECTION V: EXPERIMENTAL EVALUATION & CASE STUDIES
+    # 9. SECTION VII: EXPERIMENTAL BENCHMARKS & REAL-WORLD AUDIT RESULTS
     # =========================================================================
-    story.append(Paragraph("V. EXPERIMENTAL EVALUATION & REAL-WORLD AUDIT RESULTS", styles["SecHeading"]))
+    story.append(Paragraph("VII. EXPERIMENTAL BENCHMARKS & REAL-WORLD AUDIT RESULTS", styles["SecHeading"]))
     story.append(Paragraph(
-        "To test the practical performance of OWASP Sentinel AI, we conducted live evaluations on real websites and benchmark "
+        "To evaluate the real-world accuracy of OWASP Sentinel AI, we conducted live evaluations on real websites and benchmark "
         "environments, comparing its results against two established open-source tools: Baseline Scanner A (OWASP ZAP 2.14) "
-        "and Baseline Scanner B (Nikto 2.5). Table II summarizes the comparative detection accuracy.",
+        "and Baseline Scanner B (Nikto 2.5). Figure 5 illustrates the comparative false-positive rate and precision performance.",
         styles["Body"]
     ))
+
+    # FIGURE 5: Matplotlib Benchmark Bar Chart
+    img_bench = get_clean_image("fig_benchmark_bar.png", target_w=440)
+    if img_bench:
+        story.append(img_bench)
+        story.append(Paragraph(
+            "<b>Figure 5:</b> Comparative performance benchmark demonstrating zero false positives and 100% precision on single-page applications.",
+            styles["FigureCaption"]
+        ))
+        story.append(Spacer(1, 6))
 
     # TABLE II: Benchmark Performance Table
     story.append(Paragraph("TABLE II: VULNERABILITY DETECTION ACCURACY AND BENCHMARK PERFORMANCE", styles["TableCaption"]))
@@ -742,39 +762,29 @@ def build_research_paper(output_path: str):
     story.append(Paragraph("A. Real-World Audit: Portfolio Website (portfolioofkrish.vercel.app)", styles["SubSecHeading"]))
     story.append(Paragraph(
         "To evaluate performance on a live modern web application, we audited <code>https://portfolioofkrish.vercel.app/</code>. "
-        "As shown in Figure 4, the platform performed complete DNS reconnaissance (discovering 6 active subdomains), evaluated the "
+        "As shown in Figure 6, the platform performed complete DNS reconnaissance (discovering 6 active subdomains), evaluated the "
         "SSL/TLS certificate (awarding a Grade A+ based on TLS 1.3 protocol support and 128-bit encryption), identified the underlying "
         "technology stack (Vercel web server and Vue.js framework), and listed identified security findings alongside clear remediation advice.",
         styles["Body"]
     ))
 
-    # FIGURE 4: Live Portfolio Scan Screenshot
-    img_port = get_scaled_image("fig_scan_portfolio.png", max_w=450)
+    # FIGURE 6: Live Portfolio Scan Screenshot
+    img_port = get_clean_image("fig_scan_portfolio.png", target_w=430)
     if img_port:
         story.append(img_port)
         story.append(Paragraph(
-            "<b>Figure 4:</b> Live security audit results for portfolioofkrish.vercel.app, demonstrating SSL Grade A+ validation, technology fingerprinting, and vulnerability listing.",
+            "<b>Figure 6:</b> Live security audit results for portfolioofkrish.vercel.app, demonstrating SSL Grade A+ validation, technology fingerprinting, and vulnerability listing.",
             styles["FigureCaption"]
         ))
         story.append(Spacer(1, 6))
 
-    story.append(Paragraph("B. Real-World Audit: Intermediary Challenge Handling (freshtray-mges.vercel.app)", styles["SubSecHeading"]))
-    story.append(Paragraph(
-        "When auditing <code>https://freshtray-mges.vercel.app/</code>, the target edge network activated security challenge protections. "
-        "Standard scanners generated false alerts for missing security headers on the challenge screen. In contrast, OWASP Sentinel AI's "
-        "challenge detection module recognized the <code>X-Vercel-Mitigated: challenge</code> header, safely stopped scanning the challenge "
-        "page, and accurately reported: <i>'Security header verification inconclusive – intermediary security challenge detected.'</i>. "
-        "Additionally, when checking for <code>web.config</code>, the platform properly identified the response as an HTML fallback and "
-        "classified it as an informational candidate needing verification, achieving 100% precision with zero false alarms.",
-        styles["Body"]
-    ))
-
     # =========================================================================
-    # 8. SECTION VI: FEASIBILITY & ETHICAL GUARDRAILS
+    # 10. SECTION VIII: SYSTEM DEPLOYMENT ROADMAP & SECURITY BEST PRACTICES
     # =========================================================================
-    story.append(Paragraph("VI. PROJECT FEASIBILITY AND ETHICAL TESTING RULES", styles["SecHeading"]))
+    story.append(Paragraph("VIII. SYSTEM DEPLOYMENT ROADMAP & SECURITY BEST PRACTICES", styles["SecHeading"]))
     story.append(Paragraph(
-        "To ensure the tool remains practical, safe, and legally compliant, the scope of the project was deliberately defined [4]:",
+        "To facilitate adoption across development teams and educational programs, OWASP Sentinel AI follows a straightforward "
+        "deployment architecture backed by safe operational principles:",
         styles["Body"]
     ))
     story.append(Paragraph(
@@ -794,15 +804,15 @@ def build_research_paper(output_path: str):
         styles["Bullet"]
     ))
     story.append(Paragraph(
-        "• <b>Responsible Disclosure & Authorization:</b> Users are explicitly advised to scan only applications they own or have "
-        "written authorization to audit.",
+        "• <b>CI/CD Pipeline Integration:</b> The modular Flask API endpoints allow development teams to trigger automated scans "
+        "during build stages (e.g., in GitHub Actions or GitLab CI) and export audit reports as standard JSON or PDF documents.",
         styles["Bullet"]
     ))
 
     # =========================================================================
-    # 9. SECTION VII: CONCLUSION
+    # 11. SECTION IX: CONCLUSION
     # =========================================================================
-    story.append(Paragraph("VII. CONCLUSION & FUTURE WORK", styles["SecHeading"]))
+    story.append(Paragraph("IX. CONCLUSION & PROJECT SUMMARY", styles["SecHeading"]))
     story.append(Paragraph(
         "In this project, we developed and evaluated <b>OWASP Sentinel AI</b>, an intelligent web vulnerability scanner and attack-path "
         "analyzer created by Krish Mishra, Manmeet Malik, and Bhuvendra Singh. By combining predefined security checks, structural "
@@ -812,27 +822,6 @@ def build_research_paper(output_path: str):
         "Future enhancements will focus on expanding attack-path rules and adding browser-assisted scanning for complex web applications.",
         styles["Body"]
     ))
-
-    # =========================================================================
-    # 10. SECTION VIII: REFERENCES (IEEE Format)
-    # =========================================================================
-    story.append(Paragraph("REFERENCES", styles["SecHeading"]))
-
-    refs = [
-        "[1] A. Doupé, M. Cova, and G. Vigna, \"Why Johnny Can't Pentest: An Analysis of Black-box Web Vulnerability Scanners,\" in <i>Proc. 7th Int. Conf. Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA)</i>, Springer, 2010, pp. 111–131.",
-        "[2] S. Bau, E. Bursztein, D. Gupta, and J. C. Mitchell, \"State of the Art: Automated Black-Box Web Application Vulnerability Testing,\" in <i>IEEE Symposium on Security and Privacy (S&P)</i>, 2010, pp. 332–345.",
-        "[3] OWASP Foundation, \"OWASP Top 10: 2021 — The Ten Most Critical Web Application Security Risks,\" <i>Open Web Application Security Project</i>, Oct. 2021. Available: https://owasp.org/Top10/",
-        "[4] National Institute of Standards and Technology (NIST), \"Technical Guide to Information Security Testing and Assessment,\" <i>NIST Special Publication 800-115</i>, Sept. 2008.",
-        "[5] R. Fielding et al., \"Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content,\" <i>IETF RFC 7231</i>, June 2014.",
-        "[6] J. Hodges, C. Jackson, and A. Barth, \"HTTP Strict Transport Security (HSTS),\" <i>IETF RFC 6797</i>, Nov. 2012.",
-        "[7] M. West, \"Content Security Policy Level 3,\" <i>W3C Working Draft</i>, Oct. 2018. Available: https://www.w3.org/TR/CSP3/",
-        "[8] Google Cloud, \"Gemini 1.5 Pro and Flash: Advanced Reasoning Models for Code Synthesis and Vulnerability Assessment,\" <i>DeepMind Technical Report</i>, 2024.",
-        "[9] PortSwigger Web Security Academy, \"Server-Side Template Injection & Soft-404 Detection in Single Page Architectures,\" <i>Technical Whitepaper</i>, 2023.",
-        "[10] K. Mishra, M. Malik, and B. Singh, \"OWASP Sentinel AI Architecture & Implementation Repository,\" <i>GitHub Version Control</i>, Nov. 2026. Available: https://github.com/kri297/OWASP_SENTINEL_AI",
-    ]
-
-    for ref in refs:
-        story.append(Paragraph(ref, styles["Reference"]))
 
     doc.build(story, canvasmaker=AcademicNumberedCanvas)
     print(f"Academic Research Paper PDF generated successfully at: {output_path}")
